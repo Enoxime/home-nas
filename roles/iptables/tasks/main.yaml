@@ -1,0 +1,41 @@
+---
+- name: Accept incoming traffic from loopback interface
+  iptables:
+    action: "append"
+    chain: "INPUT"
+    comment: "Accept incoming traffic from loopback interface"
+    in_interface: "lo"
+    jump: "ACCEPT"
+    state: "present"
+
+- name: Setting firewall INPUT rules
+  iptables:
+    action: "append"
+    chain: "INPUT"
+    comment: "{{ item.comment | default(omit) }}"
+    jump: "ACCEPT"
+    destination_port: "{{ item.destination_port }}"
+    protocol: "{{ item.protocol | default('tcp') }}"
+    state: "{{ item.state | default('present') }}"
+  loop: "{{ iptables_rules }}"
+
+- name: Add related, established rule
+  iptables:
+    action: "append"
+    chain: "INPUT"
+    ctstate:
+      - "ESTABLISHED"
+      - "RELATED"
+    jump: "ACCEPT"
+    match:
+      - "state"
+
+- name: INPUT set to DROP
+  iptables:
+    chain: "INPUT"
+    policy: "DROP"
+    state: "present"
+
+- name: Save config
+  shell: /sbin/iptables-save
+...

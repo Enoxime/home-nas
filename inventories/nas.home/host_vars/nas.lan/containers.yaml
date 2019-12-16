@@ -1,0 +1,140 @@
+---
+container:
+  - command:
+      - "--providers.docker=true"
+      - "--providers.docker.exposedByDefault=false"
+      - "--api.dashboard=true"
+      - "--api.insecure=true"
+      - "--entryPoints.web.address=:80"
+      - "--entryPoints.web-secure.address=:443"
+      - "--providers.file.filename=/self-signed-conf.yaml"
+      - "--certificatesResolvers.cert.acme.email=youremail"
+      - "--certificatesResolvers.cert.acme.storage=/acme.json"
+      - "--certificatesResolvers.cert.acme.tlsChallenge=true"
+    image: "traefik:v2.1.0-rc2"
+    labels:
+      traefik.enable:                                                 "true"
+      traefik.http.routers.traefik.entrypoints:                       "web"
+      traefik.http.routers.traefik.rule:                              "Host(`traefik.nas.lan`)"
+      traefik.http.routers.traefik.priority:                          "2"
+
+      traefik.http.routers.traefik.service:                           "traefik-service"
+      traefik.http.services.traefik-service.loadbalancer.server.port: "8080"
+    name: "traefik"
+    ports:
+      - "80:80"
+      - "443:443"
+    restart: no
+    restart_policy: "unless-stopped"
+    state: started
+    task_todo_once:
+      - mkdir -p "{{ directory_data }}"/traefik/certs
+      - touch "{{ directory_data }}"/traefik/acme.json
+      - chmod 600 "{{ directory_data }}"/traefik/acme.json
+    volumes:
+      - "/var/run/docker.sock:/var/run/docker.sock:ro"
+      - "{{ directory_data }}/traefik/certs:/etc/traefik/certs"
+      - "{{ directory_data }}/traefik/self-signed-conf.yaml:/self-signed-conf.yaml"
+      - "{{ directory_data }}/traefik/acme.json:/acme.json"
+
+  - image: "portainer/portainer:1.22.2"
+    labels:
+      traefik.enable: "true"
+
+      traefik.http.routers.portainer.entrypoints: "web"
+      traefik.http.routers.portainer.rule: "Host(`portainer.nas.lan`)"
+      traefik.http.routers.portainer.priority: "2"
+      traefik.http.routers.portainer.middlewares: "portainer-middleware"
+      traefik.http.middlewares.portainer-middleware.redirectscheme.scheme: "https"
+
+      traefik.http.routers.portainer-secure.entrypoints: "web-secure"
+      traefik.http.routers.portainer-secure.rule: "Host(`portainer.nas.lan`)"
+      traefik.http.routers.portainer-secure.priority: "2"
+      traefik.http.routers.portainer-secure.service: "portainer-secure-service"
+      traefik.http.routers.portainer-secure.tls: "true"
+      traefik.http.services.portainer-secure-service.loadbalancer.server.port: "9000"
+    name: "portainer"
+    restart: no
+    restart_policy: "unless-stopped"
+    state: started
+    task_todo_once:
+      - mkdir -p "{{ directory_data }}"/portainer
+    volumes:
+      - "/var/run/docker.sock:/var/run/docker.sock"
+      - "{{ directory_data }}/portainer:/data"
+
+  - capabilities:
+      - NET_ADMIN
+    dns_servers:
+      - "127.0.0.1"
+      - "1.1.1.1"
+    env:
+      WEBPASSWORD:  "changeme"
+      TZ:           America/Toronto
+      DNS1:         "1.1.1.1"
+      DNS2:         "1.0.0.1"
+      DNSSEC:       "True"
+      ServerIP:     "{{ ansible_default_ipv4.address }}"
+      VIRTUAL_HOST: "pihole.nas.lan"
+    image:          "pihole/pihole:latest"
+    labels:
+      traefik.enable: "true"
+      traefik.http.routers.pihole.entrypoints: "web"
+      traefik.http.routers.pihole.rule: "Host(`nas.lan`, `pihole.nas.lan`) || HostRegexp(`nas.lan`, `{subdomain:.*}.nas.lan`)"
+      traefik.http.routers.pihole.priority: "1"
+      traefik.http.routers.pihole.service: "pihole-service"
+      traefik.http.services.pihole-service.loadbalancer.server.port: "80"
+
+      traefik.http.routers.pihole-secure.entrypoints: "web-secure"
+      traefik.http.routers.pihole-secure.rule: "Host(`nas.lan`, `pihole.nas.lan`) || HostRegexp(`nas.lan`, `{subdomain:.*}.nas.lan`)"
+      traefik.http.routers.pihole-secure.priority: "1"
+      traefik.http.routers.pihole-secure.service: "pihole-secure-service"
+      traefik.http.services.pihole-secure-service.loadbalancer.server.port: "443"
+    name: "pihole"
+    ports:
+      - '53:53/tcp'
+      - '53:53/udp'
+    restart: no
+    restart_policy: "unless-stopped"
+    state: started
+    task_todo_once:
+      - sed -r -i.orig 's/#?DNSStubListener=yes/DNSStubListener=no/g' /etc/systemd/resolved.conf
+      - mv /etc/resolv.conf /etc/resolv.conf.BK && ln -s /run/systemd/resolve/resolv.conf /etc/resolv.conf
+      - mkdir -p "{{ directory_data }}"/pihole/var-log
+      - mkdir -p "{{ directory_data }}"/pihole/etc-pihole
+      - mkdir -p "{{ directory_data }}"/pihole/etc-dnsmasq.d
+      - touch "{{ directory_data }}"/pihole/var-log/pihole.log
+      - touch "{{ directory_data }}/pihole/etc-dnsmasq.d/04-pihole-static-dhcp.conf"
+      - echo "address=/nas.lan/{{ ansible_default_ipv4.address }}" > "{{ directory_data }}"/pihole/etc-dnsmasq.d/nas.lan.conf
+      - echo "MAXDBDAYS=7" > "{{ directory_data }}"/pihole/etc-pihole/pihole-FTL.conf
+    volumes:
+      - "{{ directory_data }}/pihole/etc-pihole/:/etc/pihole/"
+      - "{{ directory_data }}/pihole/etc-dnsmasq.d/:/etc/dnsmasq.d/"
+
+  - image: "registry:2"
+    labels:
+      traefik.enable: "true"
+
+      traefik.http.routers.registry.entrypoints: "web"
+      traefik.http.routers.registry.rule: "Host(`registry.nas.lan`)"
+      traefik.http.routers.registry.priority: "2"
+      traefik.http.routers.registry.service: "registry-service"
+      traefik.http.services.registry-service.loadbalancer.server.port: "5000"
+      # traefik.http.routers.registry.middlewares: "registry-middleware"
+      # traefik.http.middlewares.registry-middleware.redirectscheme.scheme: "https"
+
+      traefik.http.routers.registry-secure.entrypoints: "web-secure"
+      traefik.http.routers.registry-secure.rule: "Host(`registry.nas.lan`)"
+      traefik.http.routers.registry-secure.priority: "2"
+      traefik.http.routers.registry-secure.tls: "true"
+      traefik.http.routers.registry-secure.service: "registry-secure-service"
+      traefik.http.services.registry-secure-service.loadbalancer.server.port: "5000"
+    name: "registry"
+    restart: no
+    restart_policy: "unless-stopped"
+    state: started
+    task_todo_once:
+      - mkdir -p "{{ directory_data }}"/registry
+    volumes:
+      - "{{ directory_data }}/registry:/var/lib/registry"
+...

@@ -1,0 +1,19 @@
+---
+- hosts: nas.lan
+  gather_facts: yes
+  become: yes
+  roles:
+    - base
+    - sshd_config
+    - ufw
+    - fail2ban
+
+- hosts: nas.lan
+  gather_facts: yes
+  become: yes
+  roles:
+    - zfs
+    - nfs
+    - docker
+    - container
+...

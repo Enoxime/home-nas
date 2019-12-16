@@ -1,0 +1,36 @@
+---
+- name: Install Docker dependencies
+  apt:
+    name: "{{ docker_pckg_dependencies }}"
+
+- name: Add Docker GPG apt-key
+  apt_key:
+    url: "https://download.docker.com/linux/ubuntu/gpg"
+    state: present
+
+- name: Add repository
+  apt_repository:
+    repo: "deb [arch=amd64] https://download.docker.com/linux/ubuntu {{ ansible_lsb.codename }} stable"
+    state: present
+
+- name: Install Docker
+  apt:
+    name: "{{ item }}"
+    update_cache: yes
+  loop:
+    - docker-ce
+    - docker-ce-cli
+    - containerd.io
+
+- name: Install docker-compose
+  pip:
+    name: docker-compose
+
+- name: Add user(s) to "docker" group
+  user:
+    name: "{{ item }}"
+    groups: "docker"
+    append: true
+  loop: "{{ docker_users }}"
+  when: docker_users is defined
+...

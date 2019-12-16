@@ -1,0 +1,85 @@
+---
+all:
+  hosts:
+    nas.lan:
+      ansible_user: "yourname"
+      local_timezone: "America/Toronto"
+      packages_list:
+        - aptitude
+        - vim
+        - python3
+        - python3-pip
+      zfs_mountpoint: "/mnt/zfs"
+      directory_data: "/mnt/zfs/nas/container_data"
+
+
+      pools:
+        - state: present
+          mountpoint_name: "nas"
+          pool_type: "raidz"
+          list_disks:
+            - ata-WDC_WD30EFRX-68EUZN0_WD-WMC4N0H27Y27
+            - ata-ST3000VN007-2E4166_Z731DDPZ
+            - ata-ST3000VN007-2E4166_Z731DYBA
+
+          zfs_fs:
+            - name: maya
+              state: present
+              quota: "2T"
+
+            - name: public
+              state: present
+              quota: "1T"
+
+            - name: sort
+              state: present
+              quota: "2.5T"
+
+            - name: container_data
+              state: present
+              quota: "0.5T"
+
+        - state: present
+          mountpoint_name: "backup"
+          pool_type: ""
+          list_disks:
+            - ata-WDC_WD20EFRX-68EUZN0_WD-WCC4M0PHKCA3
+            - ata-WDC_WD2003FYYS-02W0B0_WD-WMAY01445906
+
+
+      nfs:
+        - src: "{{ zfs_mountpoint }}/nas/maya"
+          dest: "maya"
+          ip: "192.168.0.0/24"
+          options:
+            - "secure"
+            - "rw"
+            - "sync"
+            - "no_root_squash"
+          state: present
+
+        - src: "{{ zfs_mountpoint }}/nas/public"
+          dest: "public"
+          ip: "192.168.0.0/24"
+          options:
+            - "secure"
+            - "rw"
+            - "sync"
+            - "no_root_squash"
+          state: present
+
+        - src: "{{ zfs_mountpoint }}/nas/sort"
+          dest: "sort"
+          ip: "192.168.0.0/24"
+          options:
+            - "secure"
+            - "rw"
+            - "sync"
+            - "no_root_squash"
+          state: present
+
+      sshd_config:
+        permit_root_login: "no"
+        password_authentication: "no"
+        x11_forwarding: "no"
+...

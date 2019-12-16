@@ -1,0 +1,12 @@
+version: "3.7"
+
+services:
+  ansible:
+    build:
+      context: .
+      dockerfile: dockerfile/ansible/Dockerfile
+    image: "home-nas/ansible"
+    network_mode: "host"
+    volumes:
+      - "${PWD}:/opt/ansible:ro"
+      - "${HOME}/.ssh:/root/ssh:ro"

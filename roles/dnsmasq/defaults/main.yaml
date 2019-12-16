@@ -1,0 +1,6 @@
+---
+dnsmasq:
+  port_number: "53"
+  use_nameservers: no
+  cache_size: "150"
+...

@@ -1,0 +1,30 @@
+---
+- name: Install dnsmasq
+  package:
+    name: dnsmasq
+    state: present
+
+- name: Create a resolv file for dnsmasq
+  template:
+    src: resolv.dnsmasq.j2
+    dest: /etc/resolv.dnsmasq
+  when:
+    - dnsmasq.use_nameservers
+
+- name: Create dnsmasq configuration file
+  template:
+    src: dnsmasq.conf.j2
+    dest: /etc/dnsmasq.conf
+
+- name: Create dnsmasq.d directory if it doesn't exists
+  file:
+    path: "/etc/dnsmasq.d"
+    state: "directory"
+
+- name: Create files by domain names
+  template:
+    src: domain-name.conf.j2
+    dest: /etc/dnsmasq.d/{{ item.main_domain_name }}.conf
+  loop: "{{ dnsmasq.domains_list }}"
+  notify: Restart dnsmasq
+...

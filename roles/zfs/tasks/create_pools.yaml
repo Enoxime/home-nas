@@ -1,0 +1,46 @@
+---
+- name: Gather disks facts
+  shell: "zpool status | grep {{ item }} || exit 0"
+  loop: "{{ iter_pool.list_disks }}"
+  register: gather_disks_facts
+
+- name: Sort gather_disks_facts
+  set_fact:
+    disks_facts: "true"
+  loop: "{{ gather_disks_facts.results }}"
+  register: disks_in_pool
+  when: item.stdout != ""
+
+- name: Gather pool facts
+  stat:
+    path: "{{ zfs_mountpoint }}/{{ iter_pool.mountpoint_name }}"
+  register: pool_exists
+
+- name: Partition disks
+  become: yes
+  parted:
+    device: "{{ item }}"
+    label: "gpt"
+    number: 1
+    state: "present"
+  loop: "{{ iter_pool.list_disks }}"
+  when: disks_in_pool is not defined
+
+- name: Create pool(s)
+  become: yes
+  command: "zpool create -m {{ zfs_mountpoint }}/{{ iter_pool.mountpoint_name }} {{ iter_pool.mountpoint_name }} {{ iter_pool.pool_type }} {{ iter_pool.list_disks | join(' ') }}"
+  when:
+    - iter_pool.state == "present"
+    - pool_exists.stat.exists == false
+
+- name: Create zfs file system(s)
+  zfs:
+    name: "{{ iter_pool.mountpoint_name }}/{{ item.name }}"
+    state: present
+    extra_zfs_properties:
+      quota: "{{ item.quota}}"
+  loop: "{{ iter_pool.zfs_fs }}"
+  when:
+    - iter_pool.zfs_fs is defined
+    - item.state == "present"
+...

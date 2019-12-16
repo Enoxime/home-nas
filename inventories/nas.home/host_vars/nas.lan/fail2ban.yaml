@@ -1,0 +1,12 @@
+---
+fail2ban_config:
+  ignore_ip_list:
+    - "127.0.0.1/32"
+    - "::1"
+    - "{{ ansible_default_ipv4.address }}"
+  bantime: "604800" # 60*60*24*30 (1 month)
+  findtime: "3600" # 1 hour
+  maxretry: "2"
+  ssh:
+    port: "ssh"
+...

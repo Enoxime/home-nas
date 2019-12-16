@@ -1,0 +1,12 @@
+---
+- name: Install fail2ban
+  package:
+    name: "fail2ban"
+    state: present
+
+- name: Create jail.local
+  template:
+    dest: "/etc/fail2ban/jail.d/jail.local"
+    src: "jail.local.j2"
+  notify: Restart fail2ban
+...

@@ -1,0 +1,48 @@
+---
+ufw_ipv6: "no"
+ufw_default_input_policy: DROP
+ufw_default_output_policy: ACCEPT
+ufw_default_forward_policy: DROP
+ufw_default_application_policy: SKIP
+ufw_logging: "off"
+ufw_state: "enabled"
+
+ufw_rules:
+  - comment: "Allow ssh"
+    port: "22"
+    proto: "tcp"
+    rule: "allow"
+
+  - comment: "Allow http"
+    port: "80"
+    proto: "tcp"
+    rule: "allow"
+
+  - comment: "Allow https"
+    port: "443"
+    proto: "tcp"
+    rule: "allow"
+
+  - src: "192.168.0.0/24"
+    port: "111"
+    proto: "tcp"
+    rule: "allow"
+
+  - comment: "Allow dns tcp"
+    src: "192.168.0.0/24"
+    port: "53"
+    proto: "tcp"
+    rule: "allow"
+
+  - comment: "Allow dns udp"
+    src: "192.168.0.0/24"
+    port: "53"
+    proto: "udp"
+    rule: "allow"
+
+  - comment: "Allow nfs"
+    src: "192.168.0.0/24"
+    port: "2049"
+    proto: "tcp"
+    rule: "allow"
+...

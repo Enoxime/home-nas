@@ -1,0 +1,13 @@
+---
+- name: Create mount points
+  mount:
+    path: "/export/{{ iter.dest }}"
+    src: "{{ zfs_mountpoint }}/{{ iter.dest }}"
+    opts: bind
+    state: absent
+    fstype: none
+
+- name: Create/remove filesystem directories
+  file:
+    path: "/export/{{ iter.dest }}"
+    state: absent

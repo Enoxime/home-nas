@@ -1,0 +1,10 @@
+---
+- name: Set secured SSHD configuration
+  template:
+    dest: "/etc/ssh/sshd_config"
+    src: "sshd_config.j2"
+    owner: "root"
+    group: "root"
+    mode: "0644"
+  notify: Restart sshd
+...

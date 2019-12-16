@@ -1,0 +1,4 @@
+tls:
+  certificates:
+    - certFile: /etc/traefik/certs/nas.lan.crt
+      keyFile: /etc/traefik/certs/nas.lan.key

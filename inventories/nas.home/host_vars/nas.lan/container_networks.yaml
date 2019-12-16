@@ -1,0 +1,7 @@
+---
+container_network:
+  # - name: "example"
+  #   containers:
+  #     - "container1"
+  #     - "container2"
+...

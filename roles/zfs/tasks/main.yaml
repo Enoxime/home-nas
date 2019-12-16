@@ -1,0 +1,19 @@
+---
+- name: Install zfs
+  become: yes
+  apt:
+    name: zfsutils-linux
+    state: "present"
+
+- name: Create zfs pools/filesystems
+  include: create_pools.yaml
+  loop: "{{ pools }}"
+  loop_control:
+    loop_var: iter_pool
+
+- name: Remove zfs pools/filesystems
+  include: destroy_pools.yaml
+  loop: "{{ pools }}"
+  loop_control:
+    loop_var: iter_pool
+...
